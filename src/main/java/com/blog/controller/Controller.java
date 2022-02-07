@@ -1,5 +1,7 @@
 package com.blog.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,9 +11,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.blog.model.Blog;
 import com.blog.model.User;
 import com.blog.service.UserService;
 import com.blog.util.Result;
@@ -25,30 +27,16 @@ public class Controller {
 	@Autowired
 	private UserService userService;
 
-	@PostMapping("/user")
-	@ResponseStatus(HttpStatus.CREATED)
-	public Mono<Result> saveUser(@RequestBody User user) throws Exception {
-		return userService.saveUser(user);
-	}
-
 	@PostMapping("/register")
 	public Mono<ResponseEntity<Result>> registerUser(@RequestBody User user) throws Exception {
 		return userService.registerUser(user).map(r -> ResponseEntity.ok(r))
 				.defaultIfEmpty(ResponseEntity.notFound().build());
 	}
 
-
 	@PostMapping("/login")
 	public Mono<ResponseEntity<Result>> login(@RequestBody User user) {
-		return userService.login(user).map(r -> ResponseEntity.ok(r))
-				.defaultIfEmpty(ResponseEntity.notFound().build());
+		return userService.login(user).map(r -> ResponseEntity.ok(r)).defaultIfEmpty(ResponseEntity.notFound().build());
 
-	}
-
-	@PostMapping("/blog")
-	@ResponseStatus(HttpStatus.CREATED)
-	public Mono<User> addBlogs(@RequestBody User user) throws Exception {
-		return userService.addBlogs(user);
 	}
 
 	@GetMapping("/user")
@@ -71,20 +59,37 @@ public class Controller {
 				.defaultIfEmpty(ResponseEntity.notFound().build());
 
 	}
-
-	@PutMapping("/blog/{blogId}")
-	public Mono<ResponseEntity<User>> updateBlog(@PathVariable String blogId, @RequestBody User user) {
-
-		return userService.updateBlog(user, blogId).map(u -> ResponseEntity.ok(u))
-				.defaultIfEmpty(ResponseEntity.notFound().build());
-
-	}
-
+	
 	@DeleteMapping("/user/{userName}")
 	public Mono<ResponseEntity<Result>> deleteUser(@PathVariable String userName) {
 
 		return userService.deleteUser(userName).map(r -> ResponseEntity.ok(r))
 				.defaultIfEmpty(ResponseEntity.notFound().build());
+	}
+	
+	
+	@PostMapping("/{userName}/blog")
+	public Mono<ResponseEntity<User>> addBlogs(@PathVariable String userName, @RequestBody List<Blog> blog) throws Exception {
+		return userService.addBlogs(userName, blog).map(r -> ResponseEntity.status(HttpStatus.CREATED).body(r))
+				.defaultIfEmpty(ResponseEntity.notFound().build());
+	}
+
+
+	@PutMapping("/{userName}/blog/{blogId}")
+	public Mono<ResponseEntity<User>> updateBlog(@PathVariable String userName, @PathVariable String blogId,
+			@RequestBody Blog blog) {
+
+		return userService.updateBlog(userName, blogId, blog).map(u -> ResponseEntity.ok(u))
+				.defaultIfEmpty(ResponseEntity.notFound().build());
+
+	}
+
+	@DeleteMapping("/{userName}/blog/{blogId}")
+	public Mono<ResponseEntity<Result>> deleteBlog(@PathVariable String userName, @PathVariable String blogId) {
+
+		return userService.deleteBlog(userName, blogId).map(u -> ResponseEntity.ok(u))
+				.defaultIfEmpty(ResponseEntity.notFound().build());
+
 	}
 
 }

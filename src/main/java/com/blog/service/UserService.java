@@ -6,13 +6,14 @@ import static com.blog.util.Result.USER_ALREADY_EXIST;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,14 +30,6 @@ public class UserService {
 
 	@Autowired
 	private UserRepo userRepo;
-
-	public Mono<Result> saveUser(User user) throws Exception {
-
-		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
-		user.setTimestamp(timestamp);
-
-		return Mono.fromFuture(userRepo.save(user)).thenReturn(SUCCESS).onErrorReturn(FAIL);
-	}
 
 	public Flux<User> getUsers() {
 		return Flux.from(userRepo.getAllUser().items());
@@ -57,45 +50,27 @@ public class UserService {
 		return Mono.fromFuture(userRepo.getUserByID(userName));
 	}
 
-	public Mono<User> addBlogs(User user) {
+	public Mono<User> addBlogs(String userName, List<Blog> blogs) {
 
-		return Mono.fromFuture(userRepo.getUserByID(user.getUserName())).flatMap(existingUser -> {
+		return Mono.fromFuture(userRepo.getUserByID(userName)).flatMap(existingUser -> {
 
-			List<Blog> b = existingUser.getBlog();
+			List<Blog> existingBlogs = existingUser.getBlog();
 
-			if (b == null) {
-				b = new ArrayList<Blog>();
-				b.addAll(user.getBlog());
-			} else {
-				b.addAll(user.getBlog());
+			Iterator<Blog> itr = blogs.iterator();
+			while (itr.hasNext()) {
+				Blog z = (Blog) itr.next();
+				z.setBlogId("blogId:" + UUID.randomUUID());
+				z.setTimestamp(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date()));
 			}
 
-			existingUser.setBlog(b);
+			if (existingBlogs == null) {
+				existingBlogs = new ArrayList<Blog>();
+				existingBlogs.addAll(blogs);
+			} else {
+				existingBlogs.addAll(blogs);
+			}
 
-			if (user.getUserName() != null)
-				existingUser.setUserName(user.getUserName());
-			if (user.getPassword() != null)
-				existingUser.setPassword(user.getPassword());
-
-			return Mono.fromFuture(userRepo.updateUser(existingUser));
-		});
-	}
-
-	public Mono<User> updateBlog(User user, String blogId) {
-
-		return Mono.fromFuture(userRepo.getUserByID(user.getUserName())).flatMap(existingUser -> {
-
-			List<Blog> b = existingUser.getBlog();
-
-			Blog getOne = b.stream().filter(blogs -> blogId.equals(blogs.getBlogId())).findAny().orElse(null);
-
-			int index = b.indexOf(getOne);
-
-			getOne = user.getBlog().get(0);
-
-			b.set(index, getOne);
-
-			existingUser.setBlog(b);
+			existingUser.setBlog(existingBlogs);
 
 			return Mono.fromFuture(userRepo.updateUser(existingUser));
 		});
@@ -104,10 +79,12 @@ public class UserService {
 	public Mono<User> updateUser(String userName, User user) {
 		return Mono.fromFuture(userRepo.getUserByID(userName)).flatMap(existingUser -> {
 
-			if (user.getUserName() != null)
-				existingUser.setUserName(user.getUserName());
-			if (user.getPassword() != null)
+			if (StringUtils.isNotBlank(user.getPassword()))
 				existingUser.setPassword(user.getPassword());
+			if (StringUtils.isNotBlank(user.getFirstName()))
+				existingUser.setFirstName(user.getFirstName());
+			if (StringUtils.isNotBlank(user.getPassword()))
+				existingUser.setLastName(userName);
 
 			return Mono.fromFuture(userRepo.updateUser(existingUser));
 		});
@@ -122,8 +99,7 @@ public class UserService {
 	public Mono<Result> registerUser(User user) {
 
 		return Mono.fromFuture(userRepo.getUserByID(user.getUserName()))
-				.flatMap(exUser -> Mono.just(Optional.of(exUser)))
-				.defaultIfEmpty(Optional.empty())
+				.flatMap(exUser -> Mono.just(Optional.of(exUser))).defaultIfEmpty(Optional.empty())
 				.flatMap(exUserOptional -> {
 					if (!exUserOptional.isPresent()) {
 						String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
@@ -137,5 +113,55 @@ public class UserService {
 
 	}
 
-}
+	public Mono<User> updateBlog(String userName, String blogId, Blog blog) {
 
+		return Mono.fromFuture(userRepo.getUserByID(userName)).flatMap(existingUser -> {
+
+			List<Blog> existingBlogs = existingUser.getBlog();
+
+			Blog getOne = existingBlogs.stream().filter(blogs -> blogId.equals(blogs.getBlogId())).findAny()
+					.orElse(null);
+
+			if (getOne != null) {
+				int index = existingBlogs.indexOf(getOne);
+				existingBlogs.remove(index);
+
+				if (StringUtils.isNotBlank(blog.getBlogText()))
+					getOne.setBlogText(blog.getBlogText());
+				if (blog.getIsDraft() != null)
+					getOne.setIsDraft(blog.getIsDraft());
+				if (blog.getIsPublished() != null)
+					getOne.setIsPublished(blog.getIsPublished());
+
+				existingBlogs.set(index, getOne);
+
+				existingUser.setBlog(existingBlogs);
+
+				return Mono.fromFuture(userRepo.updateUser(existingUser));
+			}
+
+			else
+				return Mono.empty();
+
+		});
+	}
+
+	public Mono<Result> deleteBlog(String userName, String blogId) {
+
+		return Mono.fromFuture(userRepo.getUserByID(userName)).flatMap(existingUser -> {
+
+			List<Blog> existingBlogs = existingUser.getBlog();
+
+			Blog getOne = existingBlogs.stream().filter(blogs -> blogId.equals(blogs.getBlogId())).findAny()
+					.orElse(null);
+			if (getOne != null) {
+				existingBlogs.remove(existingBlogs.indexOf(getOne));
+				return Mono.fromFuture(userRepo.updateUser(existingUser)).doOnSuccess(Objects::requireNonNull)
+						.thenReturn(SUCCESS).onErrorReturn(FAIL);
+			} else
+				return Mono.just(FAIL);
+
+		});
+	}
+
+}
