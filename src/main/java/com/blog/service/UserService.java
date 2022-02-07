@@ -2,7 +2,6 @@ package com.blog.service;
 
 import static com.blog.util.Result.FAIL;
 import static com.blog.util.Result.SUCCESS;
-import static com.blog.util.Result.USER_ALREADY_EXIST;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -106,8 +105,7 @@ public class UserService {
 						user.setTimestamp(timestamp);
 						return Mono.fromFuture(userRepo.save(user)).thenReturn(SUCCESS).onErrorReturn(FAIL);
 					} else {
-
-						return Mono.just(USER_ALREADY_EXIST);
+						return Mono.empty();
 					}
 				});
 

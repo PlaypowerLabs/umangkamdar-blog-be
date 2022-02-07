@@ -17,9 +17,11 @@ import com.blog.model.Blog;
 import com.blog.model.User;
 import com.blog.service.UserService;
 import com.blog.util.Result;
+import static com.blog.util.Result.USER_ALREADY_EXIST;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
 
 @RestController
 public class Controller {
@@ -29,8 +31,8 @@ public class Controller {
 
 	@PostMapping("/register")
 	public Mono<ResponseEntity<Result>> registerUser(@RequestBody User user) throws Exception {
-		return userService.registerUser(user).map(r -> ResponseEntity.ok(r))
-				.defaultIfEmpty(ResponseEntity.notFound().build());
+		return userService.registerUser(user).map(r -> ResponseEntity.status(HttpStatus.CREATED).body(r))
+				.defaultIfEmpty(ResponseEntity.status(HttpStatus.CONFLICT).body(USER_ALREADY_EXIST));
 	}
 
 	@PostMapping("/login")
