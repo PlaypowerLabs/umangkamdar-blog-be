@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.blog.model.Blog;
@@ -24,6 +25,7 @@ import reactor.core.publisher.Mono;
 
 
 @RestController
+@RequestMapping("/user")
 public class Controller {
 
 	@Autowired
@@ -41,12 +43,12 @@ public class Controller {
 
 	}
 
-	@GetMapping("/user")
+	@GetMapping
 	public Flux<User> getUsers() {
 		return userService.getUsers();
 	}
 
-	@GetMapping("/user/{userName}")
+	@GetMapping("/{userName}")
 	public Mono<ResponseEntity<User>> getUser(@PathVariable String userName) {
 
 		return userService.getUser(userName).map(u -> ResponseEntity.ok(u))
@@ -54,7 +56,7 @@ public class Controller {
 
 	}
 
-	@PutMapping("/user/{userName}")
+	@PutMapping("/{userName}")
 	public Mono<ResponseEntity<User>> updateUser(@PathVariable String userName, @RequestBody User user) {
 
 		return userService.updateUser(userName, user).map(u -> ResponseEntity.ok(u))
@@ -62,7 +64,7 @@ public class Controller {
 
 	}
 	
-	@DeleteMapping("/user/{userName}")
+	@DeleteMapping("/{userName}")
 	public Mono<ResponseEntity<Result>> deleteUser(@PathVariable String userName) {
 
 		return userService.deleteUser(userName).map(r -> ResponseEntity.ok(r))

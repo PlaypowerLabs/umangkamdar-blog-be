@@ -157,7 +157,7 @@ public class UserService {
 				return Mono.fromFuture(userRepo.updateUser(existingUser)).doOnSuccess(Objects::requireNonNull)
 						.thenReturn(SUCCESS).onErrorReturn(FAIL);
 			} else
-				return Mono.just(FAIL);
+				return Mono.empty();
 
 		});
 	}
